@@ -12,6 +12,9 @@ int main()
 	WSADATA dat;
 	WSAStartup(ver,&dat);
 
+	/*
+	ДњТы
+	*/
 	WSACleanup();
 	return 0;
 }
