@@ -1,0 +1,6 @@
+﻿E:\Visual Studio\install\2022\Enterprise\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(502,5): warning MSB8004: Intermediate 目录未以斜杠结尾。  此生成实例将添加斜杠，因为必须有这个斜杠才能正确计算 Intermediate 目录。
+E:\Visual Studio\install\2022\Enterprise\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(503,5): warning MSB8004: Output 目录未以斜杠结尾。  此生成实例将添加斜杠，因为必须有这个斜杠才能正确计算 Output 目录。
+  server.cpp
+E:\Code\learn\c++\project\midTcpServer\server.cpp(70,7): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+E:\Code\learn\c++\project\midTcpServer\server.cpp(78,7): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+  midTcpServer.vcxproj -> E:\Code\learn\c++\project\bin\x64\Debug\midTcpServer.exe
