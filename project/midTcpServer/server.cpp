@@ -9,8 +9,8 @@
 
 struct DataPackage
 {
-	int age=12;
-	char name[32]="张三";
+	int age;
+	char name[32];
 };
 
 int main()
@@ -73,7 +73,7 @@ int main()
 		if (0 == strcmp(reBuf, "getinfo"))
 		{
 			//向客户端发送数据send
-			DataPackage data;
+			DataPackage data = {12,"zhang san"};
 			rlen = send(cSock, (const char*)&data, sizeof(data), 0);
 			if (0 >=rlen )
 				std::cout << "向客户端发送消息失败！" << std::endl;

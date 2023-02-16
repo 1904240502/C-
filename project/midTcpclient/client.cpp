@@ -67,7 +67,7 @@ int main()
 		else {
 			DataPackage* data = (DataPackage *)buffer;
 			std::cout << "接受到服务端消息！" << std::endl;
-			std::cout << "名字:" <<data->name<<"年龄:"<<data->age << std::endl;
+			std::cout << "名字:" <<data->name<<"| 年龄:"<<data->age << std::endl;
 		}
 	}
 	
