@@ -7,6 +7,12 @@
 
 #pragma comment(lib,"ws2_32.lib") //windows 附加依赖项
 
+struct DataPackage
+{
+	int age;
+	char name[32];
+};
+
 int main()
 {
 	WORD ver = MAKEWORD(2, 2);
@@ -37,15 +43,14 @@ int main()
 	while (true)
 	{
 		//输入请求
+		std::cout << "请求：";
 		std::cin >> buffer;
 		//处理请求
 		if (0 == strcmp(buffer, "exit"))
 		{
 			std::cout << "客户端退出！" << std::endl;
 			break;
-		}
-			
-		else {
+		}else {
 			//发送请求信息
 			rlen=send(sock, buffer, sizeof(buffer)+1, 0);
 			if (0 >= rlen)
@@ -55,12 +60,14 @@ int main()
 		}
 
 		//接受信息 recv
-		rlen = recv(sock, buffer, 1024, 0);
+		
+		rlen = recv(sock,  buffer, 1024, 0);
 		if (rlen <= 0)
 			std::cout << "客户端--接受消息失败！" << std::endl;
 		else {
+			DataPackage* data = (DataPackage *)buffer;
 			std::cout << "接受到服务端消息！" << std::endl;
-			std::cout << "服务端发送:" << buffer << std::endl;
+			std::cout << "名字:" <<data->name<<"年龄:"<<data->age << std::endl;
 		}
 	}
 	

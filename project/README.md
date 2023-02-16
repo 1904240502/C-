@@ -36,7 +36,5 @@
 |处理请求strcmp||
 |向客户端返回请求send|接收服务端返回数据recv|
 |关闭socket|关闭socket closesocket|
-|[服务端代码](https://github.com/1904240502/c-with-class/blob/project/project/EasyTcpServer/server.cpp)|[客户端代码](https://github.com/1904240502/c-with-class/blob/project/project/EastyTcpclient/client.cpp)|
-
-
+|[服务端代码](https://github.com/1904240502/c-with-class/blob/project/project/midTcpServer/server.cpp)|[客户端代码](https://github.com/1904240502/c-with-class/blob/project/project/midTcpclient/client.cpp)|
 ***

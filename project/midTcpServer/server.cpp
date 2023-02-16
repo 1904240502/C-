@@ -7,6 +7,12 @@
 
 #pragma comment(lib,"ws2_32.lib") //windows 附加依赖项
 
+struct DataPackage
+{
+	int age=12;
+	char name[32]="张三";
+};
+
 int main()
 {
 	WORD ver = MAKEWORD(2, 2);
@@ -40,8 +46,7 @@ int main()
 	int addrlen = sizeof(clientAddr);
 	SOCKET cSock = INVALID_SOCKET;
 
-	char reBuf[1024] = {};
-	int rlen = 0;
+
 
 	//接受客户端连接accept
 	cSock = accept(sock, (sockaddr*)&clientAddr, &addrlen);
@@ -50,35 +55,38 @@ int main()
 	else
 		std::cout << "接受到客户端成功！" << std::endl;
 
+	char reBuf[1024] = {};
+	int rlen = 0;
+	
 
 	while (true)
 	{
 		//接受客户端请求recv
 		rlen = recv(cSock, reBuf, 1024, 0);
 		if (rlen <= 0)
+		{
 			std::cout << "客户端--接受消息失败！" << std::endl;
-		else {
-			std::cout << "接受到服务端消息！" << std::endl;
-			std::cout << "要处理的请求:" << reBuf << std::endl;
-		}
+			break;
+		}	
 
 		//消息处理
-		if (0 == strcmp(reBuf, "getname"))
+		if (0 == strcmp(reBuf, "getinfo"))
 		{
 			//向客户端发送数据send
-			char sBuf[] = "zhang";
-			if (0 >= send(cSock, sBuf, strlen(sBuf) + 1, 0))
+			DataPackage data;
+			rlen = send(cSock, (const char*)&data, sizeof(data), 0);
+			if (0 >=rlen )
 				std::cout << "向客户端发送消息失败！" << std::endl;
 			else
 				std::cout << "向客户端发送消息成功！" << std::endl;
-		}
-		else {
+		}else {
 			//向客户端发送数据send
 			char sBuf[] = "???";
-			if (0 >= send(cSock, sBuf, strlen(sBuf) + 1, 0))
+			rlen = send(cSock, sBuf, strlen(sBuf) + 1, 0);
+			if (0 >= rlen)
 				std::cout << "向客户端发送消息失败！" << std::endl;
 			else
-				std::cout << "向客户端发送消息成功！" << std::endl;
+				std::cout << "用户请求错误，向客户端发送消息成功！" << std::endl;	
 		}
 	}
 
