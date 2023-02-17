@@ -7,11 +7,63 @@
 
 #pragma comment(lib,"ws2_32.lib") //windows 附加依赖项
 
-struct DataPackage
+enum DataType
 {
-	int age;
-	char name[32];
+	LOGIN,
+	LOGIN_RESULT,
+	LOGOUT,
+	LOGOUT_RESULT,
+	WEEOR
 };
+
+struct DataHeader
+{
+	short dataLength;
+	DataType type;
+};
+
+class Login :public DataHeader
+{
+public:
+	Login() :userName(""), passWord("")
+	{
+		dataLength = sizeof(Login);
+		type = LOGIN;
+	}
+	char userName[32];
+	char passWord[32];
+};
+class LoginResult :public DataHeader
+{
+public:
+	LoginResult() :result(1)
+	{
+		dataLength = sizeof(LoginResult);
+		type = LOGIN_RESULT;
+	}
+	int result;
+};
+class Logout :public DataHeader
+{
+public:
+	Logout() :userName("")
+	{
+		dataLength = sizeof(Logout);
+		type = LOGOUT;
+	}
+	char userName[32];
+};
+class LogoutResult :public DataHeader
+{
+public:
+	LogoutResult() :result(0)
+	{
+		dataLength = sizeof(LogoutResult);
+		type = LOGOUT_RESULT;
+	}
+	int result;
+};
+
 
 int main()
 {
@@ -45,29 +97,46 @@ int main()
 		//输入请求
 		std::cout << "请求：";
 		std::cin >> buffer;
+
 		//处理请求
 		if (0 == strcmp(buffer, "exit"))
 		{
 			std::cout << "客户端退出！" << std::endl;
 			break;
-		}else {
+		}else if (0 == strcmp(buffer, "login")) {
 			//发送请求信息
-			rlen=send(sock, buffer, sizeof(buffer)+1, 0);
-			if (0 >= rlen)
-				std::cout << "向服务端发送消息失败！" << std::endl;
-			else
-				std::cout << "向服务端发送消息成功！" << std::endl;
+			Login login;
+			strcpy_s(login.userName, "zhang san");
+			strcpy_s(login.passWord, "123456");
+			//send(sock, (const char*)&login.type, sizeof(DataHeader), 0);
+			send(sock, (const char*)&login, sizeof(Login), 0);
+			//接收登录结果
+			LoginResult res;
+			rlen=recv(sock, (char *)&res, sizeof(LoginResult), 0);
+			if (res.result == 1)
+				std::cout << "数据长度：" << rlen<<"|" << res.dataLength << " 成功返回\"1\": " << res.result << std::endl;
+			else 
+				std::cout << "客户端登录失败！" << std::endl;
 		}
-
-		//接受信息 recv
-		
-		rlen = recv(sock,  buffer, 1024, 0);
-		if (rlen <= 0)
-			std::cout << "客户端--接受消息失败！" << std::endl;
-		else {
-			DataPackage* data = (DataPackage *)buffer;
-			std::cout << "接受到服务端消息！" << std::endl;
-			std::cout << "名字:" <<data->name<<"| 年龄:"<<data->age << std::endl;
+		else if (0 == strcmp(buffer, "logout"))
+		{
+			//发送请求信息
+			
+			Logout logout;
+			strcpy_s(logout.userName, "li si");
+			//send(sock, (const char*)&logout.type, sizeof(DataHeader), 0);
+			send(sock, (const char*)&logout, sizeof(Logout), 0);
+			//接收登录结果
+			LogoutResult res;
+			rlen=recv(sock, (char*)&res, sizeof(LogoutResult), 0);
+			if (res.result == 0)
+				std::cout << "数据长度：" << rlen << "|" << res.dataLength <<  " 成功返回\"0\": " << res.result << std::endl;
+			else
+				std::cout << "客户端登录失败！" << std::endl;
+		}
+		else
+		{
+			std::cout << "命令输入错误！" << std::endl;
 		}
 	}
 	

@@ -37,4 +37,15 @@
 |向客户端返回请求send|接收服务端返回数据recv|
 |关闭socket|关闭socket closesocket|
 |[服务端代码](https://github.com/1904240502/c-with-class/blob/project/project/midTcpServer/server.cpp)|[客户端代码](https://github.com/1904240502/c-with-class/blob/project/project/midTcpclient/client.cpp)|
+
+
++ 数据报
+  
+  类型：登录，登录结果，登出，登出结果，错误
+
+  报头：数据长度，数据类型
+
+  数据：报头，包体
+
+-
 ***

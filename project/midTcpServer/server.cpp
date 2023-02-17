@@ -7,11 +7,65 @@
 
 #pragma comment(lib,"ws2_32.lib") //windows 附加依赖项
 
-struct DataPackage
+
+enum DataType
 {
-	int age;
-	char name[32];
+	LOGIN,
+	LOGIN_RESULT,
+	LOGOUT,
+	LOGOUT_RESULT,
+	WEEOR
 };
+
+struct DataHeader
+{
+	short dataLength;
+	DataType type;
+};
+
+class Login :public DataHeader
+{
+public:
+	Login() :userName(""), passWord("")
+	{
+		dataLength = sizeof(Login);
+		type = LOGIN;
+	}
+	char userName[32];
+	char passWord[32];
+};
+class LoginResult :public DataHeader
+{
+public:
+	LoginResult():result(1)
+	{
+		dataLength = sizeof(LoginResult);
+		type = LOGIN_RESULT;
+	}
+	int result;
+};
+class Logout :public DataHeader
+{
+public:
+	Logout():userName("")
+	{
+		dataLength = sizeof(Logout);
+		type = LOGOUT;
+	}
+	char userName[32];
+};
+class LogoutResult :public DataHeader
+{
+public:
+	LogoutResult():result(0)
+	{
+		dataLength = sizeof(LogoutResult);
+		type = LOGOUT_RESULT;
+	}
+	int result;
+};
+
+
 
 int main()
 {
@@ -55,14 +109,13 @@ int main()
 	else
 		std::cout << "接受到客户端成功！" << std::endl;
 
-	char reBuf[1024] = {};
+	DataHeader cmd{};
 	int rlen = 0;
 	
-
 	while (true)
 	{
 		//接受客户端请求recv
-		rlen = recv(cSock, reBuf, 1024, 0);
+		rlen = recv(cSock, (char*)&cmd, sizeof(DataHeader), 0);
 		if (rlen <= 0)
 		{
 			std::cout << "客户端--接受消息失败！" << std::endl;
@@ -70,26 +123,38 @@ int main()
 		}	
 
 		//消息处理
-		if (0 == strcmp(reBuf, "getinfo"))
+		switch (cmd.type)
 		{
-			//向客户端发送数据send
-			DataPackage data = {12,"zhang san"};
-			rlen = send(cSock, (const char*)&data, sizeof(data), 0);
-			if (0 >=rlen )
-				std::cout << "向客户端发送消息失败！" << std::endl;
-			else
-				std::cout << "向客户端发送消息成功！" << std::endl;
-		}else {
-			//向客户端发送数据send
-			char sBuf[] = "???";
-			rlen = send(cSock, sBuf, strlen(sBuf) + 1, 0);
-			if (0 >= rlen)
-				std::cout << "向客户端发送消息失败！" << std::endl;
-			else
-				std::cout << "用户请求错误，向客户端发送消息成功！" << std::endl;	
+            case LOGIN:
+		    {
+				Login data;
+				rlen=recv(cSock, (char*)&data+sizeof(DataHeader), sizeof(Login)- sizeof(DataHeader), 0);
+				std::cout << "数据长度："<<rlen << "|" << data.dataLength <<" 请求登录的用户名：" << data.userName << std::endl;
+				/*
+				* 用户信息认证
+				*/
+				//向客户端发送数据send
+				LoginResult result;
+				send(cSock, (const char*)&result, sizeof(LoginResult), 0);
+		    }
+		    break;
+			case LOGOUT:
+			{
+				Logout data;
+				rlen=recv(cSock, (char*)&data+ sizeof(DataHeader), sizeof(Logout)- sizeof(DataHeader), 0);
+				std::cout << "数据长度：" << rlen<<"|"<<data.dataLength << " 请求退出的用户名：" << data.userName << std::endl;
+				//向客户端发送数据send
+				LogoutResult result;
+				send(cSock, (const char*)&result, sizeof(LogoutResult), 0);
+			}
+			break;
+			default:
+			{
+				DataHeader data{0,WEEOR};
+				send(cSock, (const char*)&data, sizeof(DataHeader) , 0);
+			}
 		}
 	}
-
 	//关闭服务端closesocket
 	closesocket(sock);
 
