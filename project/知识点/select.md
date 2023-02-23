@@ -7,7 +7,7 @@
     ```
         recv在阻塞模式下，直到套节字上有数据可读，把数据读到buf中才会返回，在单线程中会导致程序锁死。在非阻塞模式下，没有数据可读返回值是-1，并且错误码是EAGAIN or EWOULDBLOCK
     ```
-    recv & send 不了解点[这里]()
+    recv & send 不了解点[这里](./send%26recv.md)
 - **select**
     + 图解
         >>>![selsct模型图](./select.png)

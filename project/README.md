@@ -15,7 +15,7 @@
 |客户端连接accept||
 |发送消息send|接受消息recv|
 |关闭socket|关闭socket closesocket|
-|[服务端代码](https://github.com/1904240502/c-with-class/blob/project/project/EasyTcpServer/server.cpp)|[客户端代码](https://github.com/1904240502/c-with-class/blob/project/project/EastyTcpclient/client.cpp)|
+|[服务端代码](./EasyTcpServer/server.cpp)|[客户端代码](./EastyTcpclient/client.cpp)|
 
 ***
 ### ***持续请求的c/s网络模型 version1.1*** 
@@ -37,7 +37,7 @@
 |处理请求strcmp||
 |向客户端返回请求send|接收服务端返回数据recv|
 |关闭socket|关闭socket closesocket|
-|[服务端代码](https://github.com/1904240502/c-with-class/blob/project/project/midTcpServer/server.cpp)|[客户端代码](https://github.com/1904240502/c-with-class/blob/project/project/midTcpclient/client.cpp)|
+|[服务端代码](./midTcpServer/server.cpp)|[客户端代码](./midTcpclient/client.cpp)|
 
 
 + 数据报
@@ -55,8 +55,8 @@
     服务端：建立socket，连接客户端，select监听，接收客户端请求，处理请求，返回请求信息
     客户端：建立socket，连接服务端，创建线程输入发送请求，select监听，接收服务端返回数据
   ```
-  + |[服务端代码](https://github.com/1904240502/c-with-class/blob/project/project/SelectServer/server.cpp)|[客户端代码](https://github.com/1904240502/c-with-class/blob/project/project/SelectClient/client.cpp)|
-  + |[select介绍](https://github.com/1904240502/c-with-class/blob/project/project/SelectServer/server.cpp)|[send & recv](https://github.com/1904240502/c-with-class/blob/project/project/SelectClient/client.cpp)|
+  + |[服务端代码](./SelectServer/server.cpp)|[客户端代码](./SelectClient/client.cpp)|
+  + |[select介绍](./知识点/select.md)|[send & recv](./知识点/send%26recv.md)|
 
     服务端可接收多个客户端，客户端线程中实现请求输入发送，主线程中接收服务端消息
     两端都可以处理其他业务，不用阻塞等待
