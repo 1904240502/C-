@@ -69,6 +69,7 @@ int recv(SOCKET s, char *buf, int len, int flags);
 
 >阻塞和非阻塞的区别在于没有数据到达的时候是否立刻返回
 
+[详解](https://www.cnblogs.com/gaoxingnjiagoutansuo/p/15428735.html)
 [原文](https://blog.csdn.net/wjtxt/article/details/6603456)
 
 + 滑动窗口的概念

@@ -16,8 +16,14 @@ enum DataType
 	NEW_USER_JOIN,
 	WEEOR
 };
-struct DataHeader
+class DataHeader
 {
+public:
+	DataHeader()
+	{
+		dataLength = sizeof(DataHeader);
+		type = WEEOR;
+	}
 	short dataLength;
 	DataType type;
 };
@@ -35,7 +41,7 @@ public:
 class LoginResult :public DataHeader
 {
 public:
-	LoginResult() :result(1)
+	LoginResult() :result(-1)
 	{
 		dataLength = sizeof(LoginResult);
 		type = LOGIN_RESULT;
@@ -55,7 +61,7 @@ public:
 class LogoutResult :public DataHeader
 {
 public:
-	LogoutResult() :result(0)
+	LogoutResult() :result(-1)
 	{
 		dataLength = sizeof(LogoutResult);
 		type = LOGOUT_RESULT;
@@ -80,12 +86,14 @@ int proc(SOCKET sock)
 
 	//接收客户端请求recv
 	rlen = recv(sock, (char*)&cmd, sizeof(DataHeader), 0);
+	std::cout << "指令长度：" << rlen << "|" << cmd.dataLength << " 指令类型: " << cmd.type << std::endl;
 	if (rlen <= 0)
 	{
 		std::cout << "与服务端断开连接！" << std::endl;
 		return -1;
 	}
 	//消息处理
+	char buf[1024];
 	switch (cmd.type)
 	{
 	case LOGIN_RESULT:
@@ -104,8 +112,8 @@ int proc(SOCKET sock)
 		//接收登录结果
 		LogoutResult res;
 		rlen = recv(sock, (char*)&res + sizeof(DataHeader), sizeof(LogoutResult) - sizeof(DataHeader), 0);
-		if (res.result == 0)
-			std::cout << "数据长度：" << rlen << "|" << res.dataLength << " 成功返回\"0\": " << res.result << std::endl;
+		if (res.result == 1)
+			std::cout << "数据长度：" << rlen << "|" << res.dataLength << " 成功返回\"1\": " << res.result << std::endl;
 		else
 			std::cout << "客户端登录失败！" << std::endl;
 	}
@@ -136,7 +144,6 @@ void cmdThread(SOCKET sock)
 	while (true)
 	{
 		//输入请求
-		std::cout << "请求：";
 		std::cin >> buffer;
 
 		//处理请求

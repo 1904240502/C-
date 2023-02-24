@@ -18,8 +18,14 @@ enum DataType
 	NEW_USER_JOIN,
 	WEEOR
 };
-struct DataHeader
+class DataHeader
 {
+public:
+	DataHeader()
+	{
+		dataLength = sizeof(DataHeader);
+		type = WEEOR;
+	}
 	short dataLength;
 	DataType type;
 };
@@ -37,7 +43,7 @@ public:
 class LoginResult :public DataHeader
 {
 public:
-	LoginResult() :result(1)
+	LoginResult() :result(-1)
 	{
 		dataLength = sizeof(LoginResult);
 		type = LOGIN_RESULT;
@@ -57,14 +63,14 @@ public:
 class LogoutResult :public DataHeader
 {
 public:
-	LogoutResult() :result(0)
+	LogoutResult() :result(-1)
 	{
 		dataLength = sizeof(LogoutResult);
 		type = LOGOUT_RESULT;
 	}
 	int result;
 };
-class NewUserJoin:public DataHeader
+class NewUserJoin :public DataHeader
 {
 public:
 	NewUserJoin() :sock(0)
@@ -74,7 +80,6 @@ public:
 	}
 	int sock;
 };
-
 //消息处理
 int  proc(SOCKET cSock)
 {
@@ -101,6 +106,7 @@ int  proc(SOCKET cSock)
 		*/
 		//向客户端发送数据send
 		LoginResult result;
+		result.result = 1;
 		send(cSock, (const char*)&result, sizeof(LoginResult), 0);
 	}
 	break;
@@ -111,18 +117,18 @@ int  proc(SOCKET cSock)
 		std::cout << "客户端: " << cSock << "请求!" << "数据长度：" << rlen << "|" << data.dataLength << " 请求退出的用户名：" << data.userName << std::endl;
 		//向客户端发送数据send
 		LogoutResult result;
+		result.result = 1;
 		send(cSock, (const char*)&result, sizeof(LogoutResult), 0);
 	}
 	break;
 	default:
 	{
-		DataHeader data{ 0,WEEOR };
+		DataHeader data;
 		send(cSock, (const char*)&data, sizeof(DataHeader), 0);
-	}
+	}   
 	}
 	return 0;
 }
-
 int main()
 {
 	WORD ver = MAKEWORD(2, 2);
@@ -226,7 +232,7 @@ int main()
 	//关闭服务端closesocket
 	for (int i = ClientSets.size() - 1; i >= 0; i--)
 		closesocket(ClientSets[i]);
-	
+	closesocket(sock);
 	WSACleanup();
 	return 0;
 }
