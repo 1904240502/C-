@@ -18,8 +18,9 @@ public :
 	TcpServer();
 	virtual ~TcpServer();
 
-	void InitServer();
-	void CreateServer(const char* IP, unsigned short port,int backlog);
+	void InitSocket();
+	void Bind(const char* IP, unsigned short port);
+	void Connect(int backlog);
 	void Close();
 
 	void start();
@@ -33,6 +34,7 @@ private:
 	bool ExeCom(SOCKET cSock, DataHeader* header);
 	int SendData(int index,const DataHeader* data);
 	int SendData(SOCKET cSock, const DataHeader* data);
-	int RecvData(SOCKET cSock, DataHeader* data, int len);
+	void SendDataToClients(DataHeader* data);
+	int RecvData(SOCKET cSock, DataHeader* data);
 };
 #endif __TCP_SERVER_H__

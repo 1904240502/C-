@@ -3,8 +3,9 @@
 int main()
 {
 	TcpServer s1;
-	s1.InitServer();
-	s1.CreateServer("127.0.0.1", 4567, 20);
+	s1.InitSocket();
+	s1.Bind("127.0.0.1", 4567);
+	s1.Connect(4567);
 
 	while (true)
 	{

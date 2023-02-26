@@ -16,10 +16,13 @@ void TcpClient::InitSocket()
 
 	//已连接其他服务器断开连接重新创建
 	if (isCon())
+	{
+		std::cout << "socket=" << _sock << "旧连接关闭" << std::endl;
 		Close();
+	}
 	//建立socket套节字
-	 _sock= socket(AF_INET, SOCK_STREAM, 0);
-	if (INVALID_SOCKET == _sock)
+	 _sock= socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (!isCon())
 		std::cout << "客户端socket创建失败！" << std::endl;
 	else
 		std::cout << "客户端创建成功！" << std::endl;
@@ -35,9 +38,9 @@ void TcpClient::Connect(const char * IP,unsigned short port)
 	sin.sin_port = htons(port);
 	sin.sin_addr.S_un.S_addr = inet_addr(IP);
 	if (SOCKET_ERROR == connect(_sock, (sockaddr*)&sin, sizeof(sockaddr_in)))
-		std::cout << "连接服务器失败！" << std::endl;
+		std::cout  <<"socket=" << _sock <<"错误！连接http:\\\\"<<IP <<":"<< port <<"失败！"<< std::endl;
 	else
-		std::cout << "连接服务器成功！" << std::endl;
+		std::cout << "socket=" << _sock << "成功！连接http:\\\\" << IP << ":" << port << "成功！" << std::endl;
 }
 void TcpClient::Close()
 {
@@ -46,7 +49,7 @@ void TcpClient::Close()
 		closesocket(_sock);
 		WSACleanup();
 		std::cout << "客户端"<<_sock<<"退出！" << std::endl;
-		_sock = SOCKET_ERROR;
+		_sock = INVALID_SOCKET;
 	}
 }
 bool TcpClient::SendPro(){
@@ -171,18 +174,22 @@ void TcpClient::start()
 		FD_CLR(_sock, &fdRead);
 		if (!RecvInfo())
 		{
-			std::cout << "收到服务端消息处理结束！" << std::endl;
+			std::cout << "select处理结束！" << std::endl;
 			return;
 		}
 	}
 }
 bool TcpClient::isCon()
 {
-	return SOCKET_ERROR!=_sock;
+	return INVALID_SOCKET !=_sock;
 }
 int TcpClient::SendData(const DataHeader *data)
 {
-	return send(_sock, (const char *)data, data->dataLength, 0);
+	if (isCon() && data)
+	{
+		return send(_sock, (const char*)data, data->dataLength, 0);
+	}
+	return SOCKET_ERROR;
 }
 int TcpClient::RecvData(char* data, int len)
 {

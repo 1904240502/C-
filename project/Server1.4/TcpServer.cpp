@@ -8,13 +8,13 @@ TcpServer::~TcpServer()
 {
 	Close();
 }
-void TcpServer::InitServer()
+void TcpServer::InitSocket()
 {
 	WORD ver = MAKEWORD(2, 2);
 	WSADATA dat;
 	WSAStartup(ver, &dat);
 
-	if (INVALID_SOCKET != _sock)
+	if (isCon())
 		Close();
 	//建立socket套节字
 	_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -23,21 +23,28 @@ void TcpServer::InitServer()
 	else
 		std::cout << "服务端创建成功！" << std::endl;
 }
-void TcpServer::CreateServer(const char* IP, unsigned short port, int backlog)
+void TcpServer::Bind(const char* IP, unsigned short port)
 {
-	if (INVALID_SOCKET == _sock)
-		InitServer();
+	if (!isCon())
+		InitSocket();
 	//绑定客户端网络端口
 	sockaddr_in sin = {};
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons(port);
-	sin.sin_addr.S_un.S_addr = INADDR_ANY;
-	//sin.sin_addr.S_un.S_addr = inet_addr(IP);
+	if (IP) {
+		sin.sin_addr.S_un.S_addr = inet_addr(IP);
+	}
+	else {
+		sin.sin_addr.S_un.S_addr = INADDR_ANY;
+	}
 	if (SOCKET_ERROR == bind(_sock, (sockaddr*)&sin, sizeof(sockaddr_in)))
 		std::cout << "绑定端口失败！" << std::endl;
 	else
 		std::cout << "绑定端口成功！" << std::endl;
 
+}
+void TcpServer::Connect(int backlog)
+{
 	//监听listen
 	if (SOCKET_ERROR == listen(_sock, backlog))
 		std::cout << "服务端监听失败！" << std::endl;
@@ -105,13 +112,9 @@ void TcpServer::start()
 			_ClientSets.push_back(cSock);
 			std::cout << "新客户端 SOCKET =" << cSock << "连接成功！" << std::endl;
 
-			//转发告诉其他客户端有新客户加入
-			for (int i = 0; i < _ClientSets.size() - 1; i++)
-			{
-				NewUserJoin NewUser{};
-				NewUser.sock = cSock;
-				SendData(i, &NewUser);
-			}
+			NewUserJoin NewUser;
+			NewUser.sock = cSock;
+			SendDataToClients(&NewUser);
 		}
 	}
 	//处理请求
@@ -124,21 +127,21 @@ void TcpServer::start()
 }
 bool TcpServer::isCon()
 {
-	return SOCKET_ERROR!=_sock;
+	return INVALID_SOCKET !=_sock;
 }
 bool TcpServer::RecvInfo(SOCKET cSock)
 {
-	DataHeader header{};
+	DataHeader *header=new DataHeader;
 	int rlen = 0;
 
 	//接受客户端请求recv
-	rlen = RecvData(cSock, &header, header.dataLength);
+	rlen = RecvData(cSock, header);
 	if (rlen <0)
 	{
 		std::cout << "客户端: " << cSock << "已退出！" << std::endl;
 		return true;
 	}
-	return ExeCom(cSock, &header);
+	return ExeCom(cSock, header);
 }
 bool TcpServer::ExeCom(SOCKET cSock, DataHeader* header)
 {
@@ -150,9 +153,8 @@ bool TcpServer::ExeCom(SOCKET cSock, DataHeader* header)
 	case LOGIN:
 	{
 		Login data;
-		//rlen=RecvData(cSock, &data + point, data.dataLength - point);
 		rlen = recv(cSock, (char *) & data + point, data.dataLength - point,0);
-		std::cout << "客户端: " << cSock << "请求登录! " << std::endl;
+		std::cout << "客户端: " << cSock << "请求登录! " <<data.userName<< std::endl;
 		/*
 		* 用户信息认证
 		*/
@@ -166,9 +168,8 @@ bool TcpServer::ExeCom(SOCKET cSock, DataHeader* header)
 	case LOGOUT:
 	{
 		Logout data;
-		//rlen = RecvData(cSock, &data + point, data.dataLength - point);
 		rlen = recv(cSock, (char*)&data + point, data.dataLength - point, 0);
-		std::cout << "客户端: " << cSock << "请求退出!" << std::endl;
+		std::cout << "客户端: " << cSock << "请求退出!" << data.userName << std::endl;
 		//向客户端发送数据send
 		LogoutResult result;
 		result.result = 1;
@@ -179,8 +180,7 @@ bool TcpServer::ExeCom(SOCKET cSock, DataHeader* header)
 	break;
 	default:
 	{
-		DataHeader result;
-		SendData(cSock, &result);
+		SendData(cSock, header);
 	}
 	}
 	return false;
@@ -198,9 +198,21 @@ int TcpServer::SendData(int index, const DataHeader* data)
 }
 int TcpServer::SendData(SOCKET cSock, const DataHeader* data)
 {
-	return send(cSock, (const char*)data, data->dataLength, 0);
+	if (isCon() && data)
+	{
+		return send(cSock, (const char*)data, data->dataLength, 0);
+	}
+	return SOCKET_ERROR;
 }
-int TcpServer::RecvData(SOCKET cSock, DataHeader* data, int len)
+void TcpServer::SendDataToClients(DataHeader* data)
 {
-	return recv(cSock, (char *)data, len, 0);
+	//转发告诉其他客户端有新客户加入
+	for (int i = 0; i < _ClientSets.size() - 1; i++)
+	{
+		SendData(i, data);
+	}
+}
+int TcpServer::RecvData(SOCKET cSock, DataHeader* data)
+{
+	return recv(cSock, (char *)data, data->dataLength ,0);
 }
