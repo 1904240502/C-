@@ -46,9 +46,9 @@ void TcpClient::Close()
 {
 	if (isCon())
 	{
+		std::cout << "客户端" << _sock << "退出！" << std::endl;
 		closesocket(_sock);
 		WSACleanup();
-		std::cout << "客户端"<<_sock<<"退出！" << std::endl;
 		_sock = INVALID_SOCKET;
 	}
 }
@@ -104,11 +104,11 @@ bool TcpClient::RecvInfo()
 	//接收数据
 	rlen = RecvData(buffer + sizeof(DataHeader), header->dataLength - sizeof(DataHeader));
 	//执行指令
-	ExeCom((DataHeader *)buffer,rlen);
+	ExeCom((DataHeader *)buffer);
 
 	return true;
 }
-bool TcpClient::ExeCom(DataHeader* header,int rlen)
+bool TcpClient::ExeCom(DataHeader* header)
 {
 	switch (header->type)
 	{

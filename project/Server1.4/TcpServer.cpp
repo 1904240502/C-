@@ -43,7 +43,7 @@ void TcpServer::Bind(const char* IP, unsigned short port)
 		std::cout << "绑定端口成功！" << std::endl;
 
 }
-void TcpServer::Connect(int backlog)
+void TcpServer::Accetp(int backlog)
 {
 	//监听listen
 	if (SOCKET_ERROR == listen(_sock, backlog))
@@ -80,13 +80,20 @@ void TcpServer::start()
 	FD_SET(_sock, &fdWrite);
 	FD_SET(_sock, &fdExecept);
 
+	SOCKET maxfd = _sock;
+	
 	//将所有客户端socket添加到集合中
 	for (int i = 0; i < _ClientSets.size(); i++)
+	{
 		FD_SET(_ClientSets[i], &fdRead);
+		if (maxfd < _ClientSets[i])
+			maxfd = _ClientSets[i];
+	}
+		
 
 	//非阻塞select
 	timeval t = { 0,0 };
-	int ret = select(_sock + 1, &fdRead, &fdWrite, &fdExecept, &t);
+	int ret = select(maxfd + 1, &fdRead, &fdWrite, &fdExecept, &t);
 	if (ret < 0)
 	{
 		std::cout << "select 结束！" << std::endl;
@@ -131,16 +138,18 @@ bool TcpServer::isCon()
 }
 bool TcpServer::RecvInfo(SOCKET cSock)
 {
-	DataHeader *header=new DataHeader;
 	int rlen = 0;
 
 	//接受客户端请求recv
-	rlen = RecvData(cSock, header);
+	char buf[1024];
+	rlen =recv(cSock, buf, sizeof(DataHeader), 0);
 	if (rlen <0)
 	{
 		std::cout << "客户端: " << cSock << "已退出！" << std::endl;
 		return true;
 	}
+	DataHeader* header = (DataHeader*)buf;
+	rlen = recv(cSock, buf+sizeof(DataHeader), header->dataLength-sizeof(DataHeader), 0);
 	return ExeCom(cSock, header);
 }
 bool TcpServer::ExeCom(SOCKET cSock, DataHeader* header)
@@ -152,9 +161,8 @@ bool TcpServer::ExeCom(SOCKET cSock, DataHeader* header)
 	{
 	case LOGIN:
 	{
-		Login data;
-		rlen = recv(cSock, (char *) & data + point, data.dataLength - point,0);
-		std::cout << "客户端: " << cSock << "请求登录! " <<data.userName<< std::endl;
+		Login* data = (Login *)header;
+		std::cout << "客户端: " << cSock << "请求登录! " << data->userName << std::endl;
 		/*
 		* 用户信息认证
 		*/
@@ -167,9 +175,8 @@ bool TcpServer::ExeCom(SOCKET cSock, DataHeader* header)
 	break;
 	case LOGOUT:
 	{
-		Logout data;
-		rlen = recv(cSock, (char*)&data + point, data.dataLength - point, 0);
-		std::cout << "客户端: " << cSock << "请求退出!" << data.userName << std::endl;
+		Logout *data=(Logout *)header;
+		std::cout << "客户端: " << cSock << "请求退出!" << data->userName << std::endl;
 		//向客户端发送数据send
 		LogoutResult result;
 		result.result = 1;
@@ -192,10 +199,6 @@ void TcpServer::DelClient(SOCKET sock)
 	if (iter != _ClientSets.end())
 		_ClientSets.erase(iter);
 }
-int TcpServer::SendData(int index, const DataHeader* data)
-{
-	return send(_ClientSets[index], (const char*)data, data->dataLength, 0);
-}
 int TcpServer::SendData(SOCKET cSock, const DataHeader* data)
 {
 	if (isCon() && data)
@@ -209,10 +212,6 @@ void TcpServer::SendDataToClients(DataHeader* data)
 	//转发告诉其他客户端有新客户加入
 	for (int i = 0; i < _ClientSets.size() - 1; i++)
 	{
-		SendData(i, data);
+		SendData(_ClientSets[i], data);
 	}
-}
-int TcpServer::RecvData(SOCKET cSock, DataHeader* data)
-{
-	return recv(cSock, (char *)data, data->dataLength ,0);
 }

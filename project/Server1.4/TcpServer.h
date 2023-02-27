@@ -20,7 +20,7 @@ public :
 
 	void InitSocket();
 	void Bind(const char* IP, unsigned short port);
-	void Connect(int backlog);
+	void Accetp(int backlog);
 	void Close();
 
 	void start();
@@ -32,9 +32,7 @@ private:
 	void DelClient(SOCKET sock);
 	bool RecvInfo(SOCKET cSock);
 	bool ExeCom(SOCKET cSock, DataHeader* header);
-	int SendData(int index,const DataHeader* data);
 	int SendData(SOCKET cSock, const DataHeader* data);
 	void SendDataToClients(DataHeader* data);
-	int RecvData(SOCKET cSock, DataHeader* data);
 };
 #endif __TCP_SERVER_H__

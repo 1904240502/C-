@@ -32,7 +32,7 @@ public:
 	SOCKET _sock;
 private:
 	bool RecvInfo();
-	bool ExeCom(DataHeader* header, int rlen);
+	bool ExeCom(DataHeader* header);
 	int SendData(const DataHeader *data);
 	int RecvData(char * data,int len);
 	
