@@ -2,7 +2,7 @@
 #include"TcpClient.h"
 
 //const int nCount = FD_SETSIZE-1;
-const int nCount = 1000;
+const int nCount = 5000;
 void s(TcpClient *c)
 {
 	c->SendPro();
@@ -10,14 +10,14 @@ void s(TcpClient *c)
 
 int main()
 {
-	TcpClient c[nCount];
+	TcpClient** c = new TcpClient *[nCount];
 	for (int i = 0; i < nCount; i++)
 	{
-		c[i].InitSocket();
-		c[i].Connect("127.0.0.1", 4567);
+		c[i] = new TcpClient;
+		c[i]->InitSocket();
+		c[i]->Connect("127.0.0.1", 4567);
 		std::cout << "¿Í»§£º" << i << std::endl;
 	}
-	int n=sizeof(c);
 	//std::thread t1(s, &c1);
 	//t1.detach();
 
@@ -30,12 +30,16 @@ int main()
 	{
 		for (int i = 0; i < nCount; i++)
 		{
-			c[i].SendData(&login);
+			c[i]->SendData(&login);
 			//c[i].start();
 		}
 	}
-	for (auto client : c)
-		client.Close();
+	for (int i = 0; i < nCount; i++)
+	{
+		c[i]->Close();
+	}
+	delete[] c;
+	delete c;
 
 	Sleep(2000);
 	return 0;
