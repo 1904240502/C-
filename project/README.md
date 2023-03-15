@@ -2,7 +2,7 @@
 ## C++服务器
 
 ***
-### 用***Socket API*** 建立简易 ***TCP 服务器 客户端  version1.0*** 
+### 用Socket API建立简易 TCP 服务器 客户端  version1.0
   ```
     服务端：建立socket，连接客户端，发送消息给客户端
     客户端：建立socket，连接服务端，接收服务端消息
@@ -71,11 +71,87 @@
       初始化创建一个socket对象，创建服务端绑定端口，监听网络如果没有创建socket先创建，
       循环开始服务端处理，监听用户fd状态，有新客户端加入，将新客户socket加入客户端集并告知所有客户端。依次处理有消息的客户端，接收到消息，根据消息指令来接收客户端消息并向客户端发送处理结果，如果客户端关闭或客户请求退出，在客户端集中删除该客户端 
 
-  + 处理粘包
+  + 处理粘包————【1Gbps】
     
-        recv & send是将缓冲区的数据进行copy的作用，但是在copy中可能由于数据过大，为了接收一个完整数据，需要多次copy，将数据完整拷贝到一个自定义缓冲中
+        recv & send是将缓冲区的数据进行copy的作用，但是在copy中可能由于数据过大，为了接收一个完整数据，需要多次copy，才能将数据完整接收到一个自定义缓冲中。
 
+    + [客户端](./Client1.2_3)
+        ```c++
+        int len = sizeof(DataHeader);
+        //从缓冲中copy数据到中转缓冲
+	      int rlen = RecvData(_BUF, BUF_SIZE);
+	      //转到客户端自建缓冲
+	      memcpy(_BUFS + _BUF_POS, _BUF, rlen);
+	      _BUF_POS += rlen;
+	      //接收数据
+	      while (_BUF_POS>=len)
+	      {
+		      //获得数据长度
+		      DataHeader* header = (DataHeader*)_BUFS;
+		      //缓冲中已经有完整的包
+		      if (_BUF_POS >= header->dataLength)
+		      {
+			      int nlen = header->dataLength;
+			      //处理消息
+			      ExeCom(header);
+			      //从缓冲中取出包
+			      memcpy(_BUFS, _BUFS + nlen, _BUF_POS- nlen);
+			      _BUF_POS -= nlen;
+		      }
+		      else
+              { break;}        
+        }
+        ```
+    + [服务端](./Server1.2_3)
+        
+        创建客户类用来记录连接客户消息，将原本保存的fd变为client，copy数据到服务端buf，在将buf的数据copy到客户端的缓冲中。添加精准时间chrono用来计算传输速率。
+  + 线程————【Gbps】
+    
+    + [客户端](./Client1.2_4)
 
+        为了测试服务端压力，将客户端改为一次创建多个客户，但是客户端会在创建连接服务端浪费时间，因此创建多个线程在线程中加快连接发送
+    + [服务端](./Server1.2_4)
+        
+        服务端监听到有客户连接，在主线程中监听是否有新客户加入，有新客户加入分配到线程客户数少的线程。其他线程中监听客户消息。客户——临界资源，建立客户缓冲队列。
+        ```mermaid
+        graph TB
+        A(Client) 
+        B{exit}
+        C((创建客户))
+        D((SendData))
+        Z(结束)
+
+        A--线程--> B--yes-->Z
+        B--no-->业务处理-->Z
+        A--线程--> C-->D
+        B--no-->D-.while.-D
+        
+        
+        E(Server)
+        F[producer]
+        G[consumer]
+        H((select_客户))
+        I((select_消息))
+        J[最少客户]
+        K{缓冲队列}
+        L[RecvData]
+        M[SendData]
+    
+        E-- main -->F
+        F-->H-->J-.while.-H
+        C-.->H
+        
+        J-.加入客户缓冲队列.->G
+
+        E--线程 -->G
+        G-->K
+        K--不空-->加入客户队列-->I
+        K--空-->I-->L-->M-.while.->K
+        D-.->I
+       ```
+       ~~~
+       服务端在传递客户给线程处理时，会出现类似消费者问题，缓冲是临界资源，要进行互斥访问，因此添加到ClientSet和将ClientSet->Clients要进行加锁。
+       ~~~
 ***
 
 
