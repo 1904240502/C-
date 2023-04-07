@@ -1,26 +1,36 @@
 #include "EventServer.h"
 
-EventServer::EventServer(Event* pEvent,SOCKET sock):_sock(sock)
+EventServer::EventServer(Event* pEvent,int id):_id(id)
 {
-	memset(_BUF, 0, sizeof(_BUF));
-	_pThread = nullptr;
 	_pEvent = pEvent;
+	_oldTime = 0;
+	_isChange = false;
+	_maxfd = 0;
+	FD_ZERO(&_old_fdSet);
 }
 
 EventServer::~EventServer()
 {
 	Close();
-	_sock = INVALID_SOCKET;
-	delete _pThread;
-	std::cout << "服务端处理退出！" << std::endl;
 }
 
-void EventServer::start()
+void EventServer::Start()
 {
-	//开启接收客户消息
-	_pThread = new std::thread(std::mem_fn(&EventServer::Run), this);
-	//开启发送任务给客户
-	_Tasks.Start();
+	std::cout << "Event Server Start!  >" << _id << std::endl;
+	//开启任务处理
+	_Tasks = new TaskServer(_id);
+	_Tasks->Start();
+	//开始运行接收客户消息
+	_thread.Start(
+		nullptr,
+		[this](ctlThread* pThread) {
+			OnRun(pThread);
+		},
+		[this](ctlThread* pThread) {
+			ClearClients();
+		}
+		);
+	std::cout << "Event Server Start!  <" << _id << std::endl;
 }
 
 void EventServer::addClientToSet(Client* client)
@@ -34,133 +44,92 @@ int EventServer::GetClientNum()
 	return (int)(_Clients.size() + _ClientSet.size());
 }
 
-std::thread* EventServer::GetThread()
-{
-	return _pThread;
-}
-
-void EventServer::changeSocket()
-{
-	_sock = INVALID_SOCKET;
-}
-
 void EventServer::addSendTask(Client* pClient, DataHeader* header)
 {
-	_Tasks.addTask(new TaskSend(pClient, header));
+	_Tasks->addTask(new TaskSend(pClient, header));
 }
 
-void EventServer::Run()
+void EventServer::OnRun(ctlThread* pThread)
 {
-	fd_set cache{};
-	FD_ZERO(&cache);
-
-	bool isChange=false;
-	SOCKET maxfd = 0;
-	while (isCon())
+	while (_thread.isRun())
 	{
 		//缓冲客户集->客户集
 		if (addToClients())
-			isChange = true;
+			_isChange = true;
 		//没有客户
 		if (_Clients.empty())
 		{
 			//避免客户空处理
 			std::chrono::milliseconds t(1);
 			std::this_thread::sleep_for(t);
+			_oldTime = cellTime::getTimeInSec();
 			continue;
 		}
 
 		//创建文件描述符集
-		fd_set fdRead{};
+		fd_set fdRead;
+		fd_set fdWrite;
 		//置零
 		FD_ZERO(&fdRead);
-		if (isChange)
+		FD_ZERO(&fdWrite);
+
+		if (_isChange)
 		{
-			maxfd = _Clients.begin()->first;
+			_maxfd = _Clients.begin()->first;
 			for (auto& val : _Clients)
 			{
 				FD_SET(val.first, &fdRead);
-				if (val.first > maxfd)
-					maxfd = val.first;
+				if (val.first > _maxfd)
+					_maxfd = val.first;
 			}
-			memcpy(&cache, &fdRead, sizeof(fd_set));
-			isChange = false;
+			memcpy(&_old_fdSet, &fdRead, sizeof(fd_set));
+			_isChange = false;
 		}
 		else {
-			memcpy(&fdRead, &cache, sizeof(fd_set));
+			memcpy(&fdRead, &_old_fdSet, sizeof(fd_set));
 		}
+		memcpy(&fdWrite, &_old_fdSet, sizeof(fd_set));
 
-		int ret = select((int)maxfd + 1, &fdRead, nullptr, nullptr, nullptr);
+		timeval t{ 0,1 };
+		int ret = select((int)_maxfd + 1, &fdRead, &fdWrite, nullptr, &t);
 		if (ret < 0)
 		{
 			std::cout << "消息 select 结束！" << std::endl;
-			Close();
+			pThread->Exit(); //死锁
 			return;
 		}
 		else if (ret == 0)
 		{
 			continue;
 		}
-
-		//处理监听事件
-		vector<Client*> temp;
-		for (auto val : _Clients)
-		{
-			if (FD_ISSET(val.first, &fdRead))
-			{
-				if (!RecvInfo(val.second))
-				{
-					//在server中删除客户
-					if (_pEvent)
-						_pEvent->onLeave(val.second);
-
-					temp.push_back(val.second);
-					isChange = true;
-				}
-			}
-		}
-
-		for (auto val : temp)
-		{
-			_Clients.erase(val->GetSocket());
-			closesocket(val->GetSocket());
-			delete val;
-		}
-	}
-	//线程退出
-	
-	if (!_Clients.empty())
-	{
-		/*
-	    * 接收完整消息后再推出
-	    */
+		ReadData(fdRead);
+		WriterData(fdWrite);
+		CheckClient();
 	}
 	return;
 }
 
-bool EventServer::isCon()
+void EventServer::ClearClients()
 {
-	return INVALID_SOCKET != _sock;
+	//清理关闭客户连接
+	for (int i = 0; i < _ClientSet.size(); i++)
+	{
+		delete _ClientSet[i];
+	}
+	_ClientSet.clear();
+	for (int i = 0; i < _Clients.size(); i++)
+	{
+		delete _Clients[i];
+	}
+	_Clients.clear();
 }
 
 void EventServer::Close()
 {
-	if (isCon())
-	{
-		//清理关闭客户连接
-		for (int i=0;i<_ClientSet.size();i++)
-		{
-			closesocket(_ClientSet[i]->GetSocket());
-			delete _ClientSet[i];
-		}
-		_ClientSet.clear();
-		for (int i = 0; i < _Clients.size(); i++)
-		{
-			closesocket(_Clients[i]->GetSocket());
-			delete _Clients[i];
-		}
-		_Clients.clear();
-	}
+	std::cout << "Event Server Exit!  >"<< _id << std::endl;
+	_thread.Close();
+	delete _Tasks;
+	std::cout << "Event Server Exit!  <" << _id << std::endl;
 }
 
 bool EventServer::addToClients()
@@ -169,45 +138,34 @@ bool EventServer::addToClients()
 		return false;
 	std::lock_guard<std::mutex> lock(_mutex);
 	for (auto val : _ClientSet)
+	{
+		val->_sId = _id;
 		_Clients[val->GetSocket()] = val;
+		
+		if (_pEvent)
+			_pEvent->onJoin(val);
+	}
 	_ClientSet.clear();
 	return true;
 }
 
 bool EventServer::RecvInfo(Client* client)
 {
-	//获得数据长度
-	auto len = sizeof(DataHeader);
-
 	//接收客户数据
-	auto rlen = recv(client->GetSocket(), _BUF, sizeof(_BUF), 0);
+	auto rlen = client->RecvData();
 	if (rlen < 0)
 	{
 		//std::cout << "客户端: " << client->GetSocket() << "已退出！" << std::endl;
 		return false;
 	}
-	memcpy(client->GetRecvBufs() + client->GetRecvPos(), _BUF, rlen);
-	client->SetRecvPos(client->GetRecvPos() + rlen);
+	_pEvent->onRecv(client);
+	//处理消息
 
-	//接收数据
-	while (client->GetRecvPos() >= len)
+	while (client->hasData())
 	{
-		//获得数据长度
-		DataHeader* header = (DataHeader*)client->GetRecvBufs();
-		//缓冲中已经有完整的包
-		if (client->GetRecvPos() >= header->dataLength)
-		{
-			int nlen = header->dataLength;
-			//处理消息
-			onMsg(client, header);
-			//从缓冲中取出包
-			memcpy(client->GetRecvBufs(), client->GetRecvBufs() + nlen, client->GetRecvPos() - nlen);
-			client->SetRecvPos(client->GetRecvPos() - nlen);
-		}
-		else
-			break;
+		onMsg(client, client->GetCommand());
 	}
-
+	
 	return true;
 }
 
@@ -217,4 +175,77 @@ void EventServer::onMsg(Client * pClient, DataHeader* header)
 	//_pEvent->onMsg(pClient,header);
 }
 
+void EventServer::ClientLeave(Client* client)
+{
+	if (_pEvent)
+		_pEvent->onLeave(client);
+
+	_isChange = true;
+	delete client;
+}
+
+void EventServer::ReadData(const fd_set& fd)
+{
+	if (fd.fd_count == 0)
+		return;
+	for (auto iter = _Clients.begin(); iter != _Clients.end();)
+	{
+		if (FD_ISSET(iter->first, &fd))
+		{
+			if (!RecvInfo(iter->second))
+			{
+				//在server中删除客户
+				ClientLeave(iter->second);
+				iter = _Clients.erase(iter);
+				continue;
+			}
+		}
+		iter++;
+	}
+}
+
+void EventServer::WriterData(const fd_set& fd)
+{
+	if (fd.fd_count == 0)
+		return;
+	for (auto iter = _Clients.begin(); iter != _Clients.end();)
+	{
+		if (FD_ISSET(iter->first, &fd))
+		{
+			if (iter->second->SendDateReal()==-1)
+			{
+				//在server中删除客户
+				ClientLeave(iter->second);
+				iter = _Clients.erase(iter);
+				continue;
+			}
+		}
+		iter++;
+	}
+}
+
+void EventServer::CheckClient()
+{
+	auto nowTime = cellTime::getTimeInSec();
+	auto survival_time = nowTime - _oldTime;
+	_oldTime = nowTime;
+	for (auto iter = _Clients.begin(); iter != _Clients.end();)
+	{
+		//检测心跳
+		if (iter->second->checkHeart(survival_time))
+		{
+			//在server中删除客户
+			ClientLeave(iter->second);
+			iter = _Clients.erase(iter);
+			continue;
+		}
+		//定时发送检测
+		if (iter->second->checkSend(survival_time))
+		{
+			//将缓冲的数据发送
+			iter->second->SendDateReal();
+		}
+		iter++;
+	}
+}
 

@@ -10,7 +10,6 @@
 #include<Windows.h>
 #include<WinSock2.h>
 #include<iostream>
-
 #define BUF_SIZE 1024
 
 class Client
@@ -29,4 +28,4 @@ private:
 	int _BUF_POS;
 };
 
-#endif //__CLIENT_H__
+#endif //!__CLIENT_H__

@@ -3,7 +3,7 @@
 TcpServer::TcpServer()
 {
 	_sock = INVALID_SOCKET;
-	_RECV_COUNT = 0;
+	_MSG_COUNT = 0;
 	_CLIENT_NUM = 0;
 }
 TcpServer::~TcpServer()
@@ -17,7 +17,7 @@ void TcpServer::InitSocket()
 	WSADATA dat;
 	WSAStartup(ver, &dat);
 
-	if (isCon())
+	if (INVALID_SOCKET != _sock)
 		Close();
 	//建立socket套节字
 	_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -28,7 +28,7 @@ void TcpServer::InitSocket()
 }
 void TcpServer::Bind(const char* IP, unsigned short port)
 {
-	if (!isCon())
+	if (INVALID_SOCKET == _sock)
 		InitSocket();
 	//绑定客户端网络端口
 	sockaddr_in sin = {};
@@ -72,43 +72,61 @@ void TcpServer::Accept()
 }
 void TcpServer::Close()
 {
-	if (isCon())
+	std::cout << "TCP Server Close! >>" << std::endl;
+	_Thread.Close();
+	if (INVALID_SOCKET != _sock)
 	{
-		//告知服务要退出
-		for (auto& val : _ServerSet)
-		{
-			val->changeSocket();
-		}
 		//等待服务处理结束关闭服务端
-		for (auto &val : _ServerSet)
+		for (auto val : _ServerSet)
 		{
-			val->GetThread()->join();
+			delete val;
 		}
+		_ServerSet.clear();
 		closesocket(_sock);
 		_sock = INVALID_SOCKET;
 		WSACleanup();
 	}
+	std::cout << "TCP Server Close! <<" << std::endl;
 }
-void TcpServer::start()
+
+void TcpServer::Start(int SERVER_NUM)
 {
-	if (isCon())
+	std::cout << "TCP Server Start! >>" << std::endl;
+	for (int i = 0; i < SERVER_NUM; i++)
+	{
+		//创建服务处理端对象,启动线程
+		_ServerSet.push_back(new EventServer(this, i + 1));
+		_ServerSet[i]->Start();
+	}
+	_Thread.Start(
+		nullptr,
+		[this](ctlThread* pThread)
+		{
+			OnRun(pThread);
+		},
+		nullptr);
+	std::cout << "TCP Server Start! <<" << std::endl;
+}
+void TcpServer::OnRun(ctlThread *pThread)
+{
+	while(_Thread.isRun())
 	{
 		//统计包数
 		statistics();
 		//创建文件描述符集
-		fd_set fdRead{};
+		fd_set fdRead;
 		//置零
 		FD_ZERO(&fdRead);
 		//将服务端socket添加到集合中
 		FD_SET(_sock, &fdRead);
 
 		//非阻塞select
-		timeval t = { 0,10 };
+		timeval t = { 0,1 };
 		int ret = select((int)_sock + 1, &fdRead, 0, 0, &t);
 		if (ret < 0)
 		{
 			std::cout << "客户 select 结束！" << std::endl;
-			Close();
+			_Thread.Exit();
 			return;
 		}
 
@@ -118,18 +136,7 @@ void TcpServer::start()
 			//count归零
 			FD_CLR(_sock, &fdRead);
 			Accept();
-			return;
 		}
-	}
-}
-void TcpServer::createServer(int SERVER_NUM)
-{
-	for (int i = 0; i < SERVER_NUM; i++)
-	{
-		//创建服务处理端对象
-		_ServerSet.push_back(new EventServer(this,_sock));
-		//启动线程
-		_ServerSet[i]->start();
 	}
 }
 
@@ -148,7 +155,6 @@ void TcpServer::selectServer(Client *pClient)
 	}
 	//加入客户缓冲中
 	ser->addClientToSet(pClient);
-	onJoin(pClient);
 }
 void TcpServer::statistics()
 {
@@ -160,27 +166,27 @@ void TcpServer::statistics()
 			nim += val->GetClientNum();
 			std::cout << val->GetClientNum() << std::endl;
 		}*/
-		std::cout << "运行时间：" << t << "加入客户数目：" << _CLIENT_NUM  << "接收数据：" << (int)_RECV_COUNT / t << std::endl;
-		_RECV_COUNT = 0;
+		std::cout << "运行时间：" << t << "加入客户数目：" << _CLIENT_NUM  << "处理数据包：" << _MSG_COUNT  << std::endl;
+		_MSG_COUNT = 0;
 		_Time.update();
 	}
 }
-bool TcpServer::isCon()
-{
-	return INVALID_SOCKET != _sock;
-}
-void TcpServer::onLeave(Client* client)
+void TcpServer::onLeave(Client* pClient)
 {
 	_CLIENT_NUM--;
 }
-void TcpServer::onJoin(Client* Plicent)
+void TcpServer::onJoin(Client* pClient)
 {
 	_CLIENT_NUM++;
 }
 void TcpServer::onMsg(EventServer* pEventServer , Client* pClient, DataHeader* header)
 {
-	_RECV_COUNT++;
+	_MSG_COUNT++;
+}
+void TcpServer::onRecv(Client* pClient)
+{
+	pClient->resetHeart();
 }
 //void TcpServer::onMsg(Client* pClient, DataHeader* header) {
-//	_RECV_COUNT++;
+//	_MSG_COUNT++;
 //}

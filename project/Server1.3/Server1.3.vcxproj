@@ -145,7 +145,11 @@
   <ItemGroup>
     <ClInclude Include="CELLTimestamp.hpp" />
     <ClInclude Include="Client.h" />
+    <ClInclude Include="Config.h" />
+    <ClInclude Include="ctlThread.h" />
     <ClInclude Include="EventServer.h" />
+    <ClInclude Include="MsgBuffer.h" />
+    <ClInclude Include="Semaphore.h" />
     <ClInclude Include="TcpServerForMe.h" />
     <ClInclude Include="TaskSend.h" />
     <ClInclude Include="Package.h" />
@@ -156,7 +160,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Client.cpp" />
+    <ClCompile Include="ctlThread.cpp" />
     <ClCompile Include="EventServer.cpp" />
+    <ClCompile Include="MsgBuffer.cpp" />
+    <ClCompile Include="Semaphore.cpp" />
     <ClCompile Include="TcpServerForMe.cpp" />
     <ClCompile Include="TaskSend.cpp" />
     <ClCompile Include="Server.cpp" />

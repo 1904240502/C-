@@ -1,3 +1,5 @@
+#ifndef __PACKAGE_H__
+#define __PACKAGE_H__
 enum DataType
 {
 	LOGIN,
@@ -5,6 +7,8 @@ enum DataType
 	LOGOUT,
 	LOGOUT_RESULT,
 	NEW_USER_JOIN,
+	HEART2C,
+	HEART2S,
 	WEEOR
 };
 class DataHeader
@@ -33,7 +37,7 @@ public:
 class LoginResult :public DataHeader
 {
 public:
-	LoginResult() :result(-1), data("")
+	LoginResult(int res) :result(res), data("")
 	{
 		dataLength = sizeof(LoginResult);
 		type = LOGIN_RESULT;
@@ -55,7 +59,7 @@ public:
 class LogoutResult :public DataHeader
 {
 public:
-	LogoutResult() :result(-1), data("")
+	LogoutResult(int res) :result(res), data("")
 	{
 		dataLength = sizeof(LogoutResult);
 		type = LOGOUT_RESULT;
@@ -74,3 +78,23 @@ public:
 	int sock;
 	char data[88];
 };
+class Heart2Client :public DataHeader
+{
+public:
+	Heart2Client()
+	{
+		dataLength = sizeof(Heart2Client);
+		type = HEART2C;
+	}
+};
+class Heart2Server :public DataHeader
+{
+public:
+	Heart2Server()
+	{
+		dataLength = sizeof(Heart2Server);
+		type = HEART2S;
+	}
+};
+#endif //!__PACKAGE_H__
+

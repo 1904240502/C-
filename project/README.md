@@ -153,7 +153,57 @@
        服务端在传递客户给线程处理时，会出现类似消费者问题，缓冲是临界资源，要进行互斥访问，因此添加到ClientSet和将ClientSet->Clients要进行加锁。
        ~~~
 ***
+###  ***select网络模型 [version1.3]((./Server1.3))***
 
 
+  + 将接收客户，消息处理，任务处理分开不同线程处理
+      
+      |task|post |worker|
+      |:---:|:---:|:---:|
+      |客户|Tcpserver|EventServer|
+      |消息|EventServer|TaskServer|
+      |任务|TaskServer|客户端|
 
+  + 心跳检测
+    大量客户存在时，退出客户存在退出不完全情况，在客户中添加计时检测，长时间没有接收消息默认客户退出
+  + 定时定量发送
+  判断缓冲区满时发送数据，存在数据定时将缓冲数据发送
+    
+  + 线程封装
+    1. cv封装 用来安全条件唤醒，阻塞线程 
+    2. 线程控制函数：创建，运行，销毁
+      
+        |函数|操作|
+        |:---:|:---:|
+        |Start|启动线程，获得线程控制函数|
+        |isRun|线程是否启动运行状态|
+        |OnWork|启动线程控制函数，唤醒线程|
+        |Exit|在工作函数中退出|
+        |Close|关闭线程，|
 
+  + 缓冲封装
+    
+     |类型|读|写|
+     |:---:|:---:|:---:|
+     |单条命令|push|pop|
+     |socket|read4socket|write2socket|
+  + 收发异步
+    ~~~c++
+        auto rlen = client->RecvData();
+        //接收客户数据
+        if (rlen < 0)
+        {
+        	return false;
+        }
+        //网络事件处理
+        _pEvent->onRecv(client);
+        //处理消息
+        while (client->hasData())
+        {
+        	onMsg(client, client->GetCommand());
+        }
+        return true;
+    ~~~
+   收 从socket中读取到缓冲中，处理网络事件，从缓冲中pop取出命令，交由任务线程处理消息，将处理后的消息加入发缓冲中
+   发 调用发送将缓冲的数据写入socket，
+  + 内存池()

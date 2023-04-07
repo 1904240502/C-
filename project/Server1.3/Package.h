@@ -7,6 +7,8 @@ enum DataType
 	LOGOUT,
 	LOGOUT_RESULT,
 	NEW_USER_JOIN,
+	HEART2C,
+	HEART2S,
 	WEEOR
 };
 class DataHeader
@@ -75,6 +77,24 @@ public:
 	}
 	int sock;
 	char data[88];
+};
+class Heart2Client :public DataHeader
+{
+public:
+	Heart2Client() 
+	{
+		dataLength = sizeof(Heart2Client);
+		type = HEART2C;
+	}
+};
+class Heart2Server :public DataHeader
+{
+public:
+	Heart2Server()
+	{
+		dataLength = sizeof(Heart2Server);
+		type = HEART2S;
+	}
 };
 #endif //!__PACKAGE_H__
 

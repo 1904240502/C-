@@ -132,7 +132,7 @@ bool TcpClient::ExeCom(DataHeader* header)
 		//接收登录结果
 		LoginResult * res = (LoginResult *)header;
 		if (res->result == 1)
-			std::cout << "客户端登录成功！" << std::endl;
+			;// std::cout << "客户端登录成功！" << std::endl;
 		else
 			std::cout << "客户端登录失败！" << std::endl;
 	}
@@ -157,7 +157,13 @@ bool TcpClient::ExeCom(DataHeader* header)
 			std::cout << "新客户端加入失败！" << std::endl;
 	}
 	break;
-	default:std::cout << "无法解析的命令！" << std::endl;
+	case HEART2C:
+	{
+		//接收登录结果
+		std::cout << "服务端存在！" << std::endl;
+	}
+	break;
+	default: std::cout << "无法解析的命令！" << std::endl;
 	}
 	return false;
 }
@@ -202,6 +208,7 @@ int TcpClient::SendData(const DataHeader *data)
 int TcpClient::RecvData(char* data, int len)
 {
 	int rlen= recv(_sock, data, len, 0);
+	//std::cout << rlen << std::endl;
 	if (rlen <= 0)
 	{
 		std::cout << "与服务端断开连接！" << std::endl;

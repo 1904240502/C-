@@ -2,9 +2,11 @@
 #define __TASK_SERVER_H__
 
 #include "Task.h"
+#include"ctlThread.h"
+
+#include<iostream>
 #include<list>
-#include<mutex>
-#include <functional>
+
 class TaskServer 
 {
 public:
@@ -13,15 +15,23 @@ public:
     //服务端任务集
     std::list<Task*>_ServerTasks;
     //锁
-    std::mutex _mutex;
+    std::mutex _Mutex;
 
+private:
+    ctlThread _Thread;
+    int _id;
 public:
+    TaskServer(int id=0);
+    ~TaskServer();
+
 	//添加任务
 	void addTask(Task* task);
 	//启动工作线程
 	void Start();
+    void Close();
 protected:
-	void OnRun();
+	//void OnRun();
+    void OnRun(ctlThread* pThread);
 private:
     void addToTasks();
     bool TaskIsEmpty();

@@ -5,9 +5,9 @@ void TcpServerForMe::onJoin(Client* pClient)
 }
 void TcpServerForMe::onLeave(Client* pClient)
 {
-	TcpServer::onJoin(pClient);
+	TcpServer::onLeave(pClient);
 }
-void TcpServerForMe::onMsg(EventServer* pEventServer,Client* pClient,  DataHeader* header)
+void TcpServerForMe::onMsg(EventServer* pEventServer,Client* pClient,DataHeader* header)
 {
 	TcpServer::onMsg(pEventServer,pClient, header);
 	//消息处理
@@ -16,6 +16,8 @@ void TcpServerForMe::onMsg(EventServer* pEventServer,Client* pClient,  DataHeade
 	case LOGIN:
 	{
 		Login* data = (Login*)header;
+
+		//cout << "收到消息" << endl;
 		/*
 		* 用户信息认证
 		*/
@@ -31,6 +33,13 @@ void TcpServerForMe::onMsg(EventServer* pEventServer,Client* pClient,  DataHeade
 
 		LogoutResult* result = new LogoutResult(1);
 		//pClient->SendData(&result);
+	}
+	break;
+	case HEART2S:
+	{
+		pClient->resetHeart();
+		Heart2Client* result = new Heart2Client();
+		pEventServer->addSendTask(pClient, result);
 	}
 	break;
 	default:

@@ -1,90 +1,87 @@
 #include "Client.h"
 
-Client::Client(SOCKET sock):_sock(sock)
-{
-	_RECV_BUF_POS = 0;
-	_SEND_BUF_POS = 0;
-	_RECV_BUFS = new char[BUF_SIZE];
-	_SEND_BUFS = new char[BUF_SIZE];
-}
 
+Client::Client(SOCKET sock):_sock(sock), _RECV_BUFS(RECV_BUF_SIZE),_SEND_BUFS(SEND_BUF_SIZE)
+{
+	static int n = 1;
+	_cId = n++;
+	_sId = -1;
+	_tHeart = 0;
+	_tSend = 0;
+}
 Client::~Client()
 {
-	delete _RECV_BUFS;
-	delete _SEND_BUFS;
-	_RECV_BUF_POS = 0;
-	_SEND_BUF_POS = 0;
+	std::cout << "属于："<<_sId<<"线程的："<<_cId<<"号客户退出！" << std::endl;
+	if (SOCKET_ERROR != _sock)
+	{
+		closesocket(_sock);
+		_sock = INVALID_SOCKET;
+	}	
 }
 
 SOCKET Client::GetSocket()
 {
 	return _sock;
 }
-
 void Client::SetSocket(const SOCKET& socket)
 {
 	_sock = socket;
 }
 
-int Client::GetRecvPos()
+void Client::resetHeart()
 {
-	return _RECV_BUF_POS;
+	_tHeart = 0;
+}
+bool Client::checkHeart(const time_t& t)
+{
+	//std::cout << "客户未检测时常: " <<_tHeart<< std::endl;
+	return (_tHeart += t) >= SURVIVAL_TIME ? true : false;
+}
+void Client::resetSendTime()
+{
+	_tSend = 0;
+}
+bool Client::checkSend(const time_t& t)
+{
+	return (_tSend += t) >= SEND_TIME ? true : false;
 }
 
-void Client::SetRecvPos(const int& index)
+int Client::SendData(const DataHeader* header)
 {
-	_RECV_BUF_POS = index;
+	if (_SEND_BUFS.push(reinterpret_cast<const char*> (header), header->dataLength))
+		return header->dataLength;
+	return -1;
 }
-
-char* Client::GetRecvBufs()
+int Client::RecvData()
 {
-	return _RECV_BUFS;
+	return _RECV_BUFS.read4socket(_sock);
 }
-
-int Client::GetSendPos()
+bool Client::hasData()
 {
-	return _SEND_BUF_POS;
+	return _RECV_BUFS.hasMsg();
 }
-
-void Client::SetSendPos(const int& index)
+DataHeader* Client::GetCommand()
 {
-	_SEND_BUF_POS = index;
-}
-void Client::SendData(const DataHeader* header)
-{
-	//数据长度
-	int dataLen = header->dataLength;
-	const char* data = (const char*)header;
-	int dataPos = 0;
-	while (true)
+	DataHeader* command;
+	if (_RECV_BUFS.hasMsg())
 	{
-		//缓冲可用长度
-		int availdLen = BUF_SIZE - _SEND_BUF_POS;
-		if (availdLen > dataLen)
-		{
-			//可以完全存入
-			memcpy(_SEND_BUFS + _SEND_BUF_POS, data, dataLen);
-			_SEND_BUF_POS += dataLen;
-			break;
-		}
-		else
-		{
-			//不可以完全存入
-			memcpy(_SEND_BUFS + _SEND_BUF_POS, data+dataPos, availdLen);
-			//发送缓冲数据
-			int ret = send(_sock, _SEND_BUFS, BUF_SIZE, 0);
-			//重新统计缓冲标记
-			_SEND_BUF_POS = 0;
-			//重新统计数据长度
-			dataLen -= availdLen;
-			//重新统计缓冲位置
-			dataPos += availdLen;
-			if (SOCKET_ERROR == ret)
-			{
-				return;
-			}
-		}
+		command = reinterpret_cast<DataHeader*>(_RECV_BUFS.data());
+		int len = command->dataLength;
+		_RECV_BUFS.pop(len);
+
 	}
+	else
+	{
+		command = new DataHeader;
+		command->type = WEEOR;
+	}
+	return command;
+}
+int Client::SendDateReal()
+{
+	//std::cout << "定时数据发送数据！" << std::endl;
+	resetSendTime();
+	return _SEND_BUFS.write2socket(_sock);
 }
 
 

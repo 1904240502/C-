@@ -14,6 +14,8 @@ public:
 	//客户消息事件
 	virtual void onMsg(EventServer* pEventServer, Client *pClient, DataHeader* header) = 0;
 	//virtual void onMsg( Client* pClient, DataHeader* header) = 0;
+	//recv事件
+	virtual void onRecv(Client* client) = 0;
 };
 
 #endif //!__EVENT_H__

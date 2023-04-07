@@ -46,12 +46,13 @@ void func_p(int i)
 
 
 	//等待
-	std::chrono::milliseconds t(1000);
+	std::chrono::seconds t(1);
 	std::this_thread::sleep_for(t);
 
 	Login login;
 	strcpy_s(login.userName, "zhang san");
 	strcpy_s(login.passWord, "123456");
+
 
 	//发送包
 	while (RUN)
@@ -61,6 +62,9 @@ void func_p(int i)
 			clients[i]->SendData(&login);
 			clients[i]->start();
 		}
+		//等待
+		/*std::chrono::seconds t(10);
+		std::this_thread::sleep_for(t);*/
 	}
 	for (int i = begin; i < end; i++)
 	{

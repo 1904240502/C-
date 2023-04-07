@@ -1,3 +1,5 @@
+#ifndef __PACKAGE_H__
+#define __PACKAHE_H__
 enum DataType
 {
 	LOGIN,
@@ -28,7 +30,7 @@ public:
 	}
 	char userName[32];
 	char passWord[32];
-	char data[28];
+	char data[928];
 };
 class LoginResult :public DataHeader
 {
@@ -39,7 +41,7 @@ public:
 		type = LOGIN_RESULT;
 	}
 	int result;
-	char data[88];
+	char data[988];
 };
 class Logout :public DataHeader
 {
@@ -50,7 +52,7 @@ public:
 		type = LOGOUT;
 	}
 	char userName[32];
-	char data[60];
+	char data[960];
 };
 class LogoutResult :public DataHeader
 {
@@ -61,7 +63,7 @@ public:
 		type = LOGOUT_RESULT;
 	}
 	int result;
-	char data[88];
+	char data[988];
 };
 class NewUserJoin :public DataHeader
 {
@@ -72,5 +74,6 @@ public:
 		type = NEW_USER_JOIN;
 	}
 	int sock;
-	char data[88];
+	char data[988];
 };
+#endif // !__PACKAGE_H__
