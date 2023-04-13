@@ -3,24 +3,24 @@
 Semaphore::Semaphore():_wait(0),_wakeup(0)
 {
 }
-
-void Semaphore::wait()
+//P，V同步 锁 互斥                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+void Semaphore::wait()  
 {
 	std::unique_lock<std::mutex> lock(_mutex);
-	if (--_wait < 0)
+	if (--_wait < 0)//P操作
 	{
-		//�����ȴ�
+		//阻塞等待
 		_cv.wait(lock, [this]()->bool {
-			return _wakeup > 0;
+			return _wakeup > 0; //避免虚假唤醒
 			});
 		--_wakeup;
 	}
 }
 
-void Semaphore::wakeup()
+void Semaphore::wakeup() 
 {
 	std::lock_guard<std::mutex> lock(_mutex);
-	if (++_wait <= 0)
+	if (++_wait <= 0)//V操作
 	{
 		++_wakeup;
 		_cv.notify_one();
