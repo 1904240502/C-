@@ -33,3 +33,8 @@
 
 .vs
 .vscode
+
+# file
+learnCplus/bin/
+learnCplus/packages/
+
